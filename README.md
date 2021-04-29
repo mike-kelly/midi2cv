@@ -1,47 +1,63 @@
 # midi2cv
 
-<img src="/images/IMG_0776.JPG" alt="midi2cv" width="400"> <img src="/images/IMG_0777.JPG" alt="midi2cv" width="400">
+<img src="./images/IMG_20210424_145514.jpg" alt="midi2cv" width="800">
 
-This repository contains the code and schematic for a DIY MIDI to CV converter.  I installed this converter into a home-built analog synthesizer, allowing me to play the synthesizer with my Yamaha CP50 keyboard over MIDI.
 
-The MIDI to CV converter includes the following outputs:
 
-* Note CV output (88 keys, 1V/octave) using a 12-bit DAC
-* Note priority (highest note, lowest note, or last note) selectable with jumper or 3-way switch
-* Pitch bend CV output (0.5 +/-0.5V)
-* Velocity CV output (0 to 4V)
-* Control Change CV outout (0 to 4V)
-* Trigger output (5V, 20 msec pulse for each new key played)
-* Gate output (5V when any key depressed)
-* Clock output (1 clock per quarter note, 20 msec 5V pulses)
+This project is a fork of [Elkayem](https://github.com/elkayem/midi2cv)'s DIY MIDI to CV converter. It adds the following features:
+
+* Alt Control out, which outputs an alternative voltage range to the Control Change output. The range is configurable depending on the components you use.
+* Midi learn feature for Control Change
+* LED to show gate events and midi learn status
+* Trimpot for fine tuning
+* Schematic in **Kicad** format rather than Eagle
+
+
+#### Alt Control
+A dual op amp circuit was added onto to the Control Change CV output signal. This allows you to output an alternative voltage range at Alt Ctrl to the original Control Change out, which is 0 - 4V.
+In the schematic this is set up to output -8 - 0V. This can be changed by using different resistor values at `R9, R10, R12, R13 and R14`.
+Note that you can also adjust the Arduino code to alter Control Change output, but not in the negative range. 
+The Alt Control section of the circuit is optional. The rest of the circuit will function fine without it. If you don't need it, leave out:
+
+* `U1`
+* `R9, R10, R12, R13, R14`
+
+and **don't connect the -12V input**. This means that without the Alt Ctrl section you can use a single rail power supply.
+
+
+#### Midi Learn
+If you press the midi learn button, the LED will flash to show that you are in learn mode. Send a control change signal over midi, for example using a keyboard's mod wheel.
+The LED light will stop flashing and the channel and number of the CC signal will be stored. The board will now only respond to control change events from that controller.
+The channel and number are stored to the Arduino's memory, so should still be set when it's powered off and on again.
+
+#### LED
+The LED also flashes when note events are received.
+
+#### Tuning mod
+I found it more convenient to add a trimpot to adjust MIDI -> CV tuning, rather than reprogramming the value in the Arduino code each time to adjust. For that to work, I changed the scaling value in the Arduino code to be too low, then used the trimpot to make fine adjustments.
+If you don't have a trimpot you could put a jumper across `RV1` and make your adjustments in the code instead.
+
+#### Original features
+The features of the original are all retained, see the original [README](https://github.com/elkayem/midi2cv) for full details and parts.
 
 ## Parts
-* Arduino Nano
-* Optocoupler (I used a Vishay SFH618A, but there are plenty of alternatives out there)
-* 2x MCP4822 12-bit DACs
-* LM324N Quad Op Amp 
-* Diode (e.g., 1N917)
-* 220, 500, 3x1K, 7.7K (3K+4.7K), 10K Ohm resistors
-* 3x 0.1 uF ceramic capacitors
-* 5 pin MIDI jack
-* 7x 4mm banana plug jacks
-* 3-pin header and jumper *or* 3-way switch
+In addition to the original parts:
 
-The Arduino code uses the standard MIDI and SPI libraries, which can be found in the Arduino Library Manager. 
+* 2K trimmer pot (optional, see above). (1K is marked on the schematic, but I had a 2K, used it and it worked well)
+* Momentary NO push button
+* LED
 
-The schematic is illustrated at the bottom of this page (Eagle file included).  Input power (VIN) is 9-12V.  This is required for the Note CV op amp, used for the 0-7.3V note output.  1% metal film resistors are recommended for the 7.7K and 10K resistors, for a constant op-amp gain that does not change with temperature.  Note that 7.7K is not a standard resistor value.  I used a 3K and a 4.7K resistor in series, which are much more common values.  If precise tuning is desired, a trim pot can be added *or* the constant NOTE_SF can be adjusted in the code.  I opted for the latter.
+And for the optional Alt Ctrl section:
 
-Note priority is selected using a jumper attached to the three-pin header labelled NP_SEL in the schematic.  This header connects to the Arduino pins A0 and A2, with the center pin attached to ground.  Alternatively, a 3-way switch can be attached to this header. 
+* 3x10K, 1x20K, 1x30K resistors
+* TL072 Dual OpAmp
 
-The note priority options and jumper configuration are as follows:
-* **Highest Note:** When multiple notes are sounded simultaneously, the highest note being held will be sounded.  When the highest note is released, the next highest note will be played, and so on.  Remove the NP_SEL jumper to select this configuration.
-* **Lowest Note:** Analagous to highest note, except the lowest note being held will be sounded. Connect the NP_SEL jumper to the A0 pin and center pin (ground) to select this configuration. 
-* **Last Note:** The most recent note played will be sounded.  When that note is released, the next most recent note still being held will be sounded.  Connect the NP_SEL jumper to the A2 pin and center pin (ground) to select this configuration.  The illustration below shows the jumper configuration for the Last Note setting.
+## Notes
+- **The schematic is for Kicad 5, not Eagle** 
+- It's not possible to programme the Arduino when it's soldered into the circuit. This is because when it's powered there is 5V connected to pin `RX0`, via `R3`, which causes sync errors when programming. 
+Programme it before soldering it into the circuit, or desolder `R3` if you need to reprogramme it once it's soldered into the circuit and you're getting sync errors.
 
-<img src="/images/IMG_1884.JPG" alt="jumper" width="300">
-
-<img src="/images/schematic.JPG" alt="schematic" width="800">
-
+<img src="./images/schematic.png" alt="midi2cv schematic" width="800">
 
 
 
